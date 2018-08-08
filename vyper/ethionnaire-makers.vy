@@ -5,6 +5,7 @@
 # chosen was to use pre-defined block numbers for seeds.
 # written initially in vyper and then translated to solidity.
 
+
 # intiating variables
 is_open: False
 beneficiary: null
@@ -14,7 +15,7 @@ safe_time: int # timedelta constant
 stop_time: timedelta
 
 
-# initialize contract with variable up top
+# initialize contract
 def init:
     pass
 
