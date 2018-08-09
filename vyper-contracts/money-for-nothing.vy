@@ -8,14 +8,14 @@
 # WARNING: this contract has not been audited and the authors are not responsible for any lost funds
 
 
-# intiating state variables
-is_open: public(bool)
+# declaring state variables
+is_open: public(bool) # DEPCRECATED
 beneficiary: public(address)
-players: {sender: address, value: wei_value, cumm_pool: wei_value}[uint256]
-next_player_index: uint256 # default value 0, doesn't require init.
+players: {sender: address, value: wei_value, cumm_pool: wei_value}[int128]
+next_player_index: int128 # default value 0, doesn't require init.
 pool_size: wei_value
-stop_block: uint256
-draw_block: uint256
+stop_block: int128
+draw_block: int128
 ending_block: int128
 
 #     <------------ game_duration -----------><-- offset1 --><---- offset2 ------>
@@ -23,10 +23,10 @@ ending_block: int128
 # Deploy block                           stop_block    draw_block          ending_block
 
 @public
-def __init__(_game_duration: uint256, _offset1: uint256):    
-    self.stop_block = block.number + _game_duration 
-    self.draw_block = self.stop_block + convert(offset1, 'uint256')
-    self.ending_block = self.draw_block + _offset
+def __init__(game_duration: int128, offset1: int128, offset2: int128):    
+    self.stop_block = block.number + game_duration 
+    self.draw_block = self.stop_block + offset1
+    self.ending_block = self.draw_block + offset2
     self.is_open = True      
 
 @public
@@ -40,11 +40,11 @@ def participate():
 
     self.pool_size = self.pool_size + msg.value
     self.players[self.next_player_index] = {sender: msg.sender, value: msg.value, cumm_pool: self.pool_size}
-    self.next_player_index = self.next_player_index + convert(1, 'uint256')
+    self.next_player_index = self.next_player_index + 1
     
 
 @public
-def close_participations:
+def close_participations():
     """
     DEPRECATED as is_open is not used
     close contract and prevent additional players to participate
