@@ -43,7 +43,8 @@ def finalize:
     """
     Send eth to winner and destroy contract
     """
-    assert block.number >= self.ending_block    
+    assert block.number >= self.ending_block
+    assert self.beneficiary != ZERO_ADDRESS
     selfdestruct(self.beneficiary) # destructs contract and sends balance to beneficiary
 
 
