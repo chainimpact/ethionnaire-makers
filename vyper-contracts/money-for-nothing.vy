@@ -11,9 +11,9 @@
 # intiating state variables
 is_open: public(bool)
 beneficiary: public(address)
-players: {sender: address, value: wei_value}[uint256]
+players: {sender: address, value: wei_value, cumm_pool: wei_value}[uint256]
 next_player_index: uint256 # default value 0, doesn't require init.
-pool_size: int128
+pool_size: wei_value
 stop_block: uint256
 draw_block: uint256
 ending_block: int128
@@ -38,9 +38,10 @@ def participate():
     """    
     assert block.number < self.stop_block
 
-    self.players[self.next_player_index] = {sender: msg.sender, value: msg.value}
-    self.next_player_index = self.next_player_index + convert(1, 'uint256')
     self.pool_size = self.pool_size + msg.value
+    self.players[self.next_player_index] = {sender: msg.sender, value: msg.value, cumm_pool: self.pool_size}
+    self.next_player_index = self.next_player_index + convert(1, 'uint256')
+    
 
 @public
 def close_participations:
@@ -60,11 +61,17 @@ def get_winner(seed: int128) -> (address):
     """
     returns address of winner
     """    
-    winner_index: int128
+    winner_index: int128    
+    magic_number: int128
 
-    winner_index = seed % self.next_player_index
+    magic_number = seed % convert(self.pool_size, 'int128')
 
-    return players[winner_index].sender
+    for i in range(0, self.next_player_index):
+        if self.players[i].cumm_pool >= magic_number:
+            winner_index = self.players[i].sender
+            # return self.players[i].sender # probably this is enough and winner index is not needed
+
+    return self.players[winner_index].sender
 
 # draw winner from list of pool
 @public
