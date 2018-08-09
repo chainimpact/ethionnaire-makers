@@ -9,7 +9,8 @@
 # intiating state variables
 is_open: public(bool)
 beneficiary: public(address)
-players: {sender: address, value: wei_value}
+players: {sender: address, value: wei_value}[uint256]
+next_player_index: uint256 # default value 0, doesn't require init.
 stop_block: uint256
 draw_block: uint256
 ending_block: uint256
@@ -25,14 +26,6 @@ def __init__(_game_duration: uint256, _offset: uint256):
     self.draw_block = self.stop_block + 1
     self.ending_block = self.draw_block + _offset        
 
-
-# close contract to determine winner
-def close_participations:
-    # if self.open and timestamp > participation_limit:
-        # self.open = False
-    pass
-
-
 @public
 @payable
 def participate():
@@ -40,15 +33,16 @@ def participate():
     pay to participate in the draw.
 
     """
-    assert block.timestamp < self.deadline     
-    assert msg.value == participation_cost # TODO: remove deprecated participation_cost
+    assert block.number < self.stop_block    
 
-    self.pool[] = {sender: msg.sender}
+    self.players[self.next_player_index] = {sender: msg.sender, value: msg.value}
+    self.next_player_index = self.next_player_index + convert(1, 'uint256')
 
-# participate in the fund
-@payable
-def participate:
-    pool[].append(msg.sender)
+
+# close contract to determine winner
+def close_participations:
+    # if self.open and timestamp > participation_limit:
+        # self.open = False
     pass
 
 # get seed from block number
