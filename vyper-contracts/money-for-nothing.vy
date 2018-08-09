@@ -17,6 +17,7 @@ pool_size: wei_value
 stop_block: uint256
 draw_block: uint256
 ending_block: uint256
+checked_index: int128
 
 #     <------------ game_duration -----------><-- offset1 --><---- offset2 ------>
 #     |---------------------------------------|-------------|--------------------|
@@ -27,15 +28,12 @@ def __init__(game_duration: uint256, offset1: uint256, offset2: uint256):
     self.stop_block = block.number + game_duration 
     self.draw_block = self.stop_block + offset1
     self.ending_block = self.draw_block + offset2
-    self.is_open = True      
+    self.is_open = True
 
+# pay to participate in the game
 @public
 @payable
-def participate():
-    """
-    pay to participate in the draw.
-
-    """    
+def participate():    
     assert block.number < self.stop_block
 
     self.pool_size = self.pool_size + msg.value
@@ -53,31 +51,40 @@ def close_participations():
         self.is_open = False    
 
 # get seed from block number
-def get_seed() -> (int128):    
+@private
+def get_seed() -> (uint256):    
     # assert block.number >= self.draw_block and block.
-    return convert(block.blockhash(self.draw_block), 'int128')
+    # return convert(block.blockhash(self.draw_block), 'int128')
+    return convert(blockhash(self.draw_block), 'uint256')
 
-def get_winner(seed: int128) -> (address):
+@private
+def get_winner(seed: uint256) -> (address):
     """
     returns address of winner
-    """    
-    winner_index: int128    
-    magic_number: int128
+    """            
+    magic_number: uint256
+    # magic_number: wei_value
 
-    magic_number = seed % convert(self.pool_size, 'int128')
+    # magic_number = seed % convert(self.pool_size, 'int128')
+    magic_number = seed % as_unitless_number(self.pool_size)
+    ind: int128 = self.next_player_index
 
-    for i in range(0, self.next_player_index):
-        if self.players[i].cumm_pool >= magic_number:
-            winner_index = self.players[i].sender
-            # return self.players[i].sender # probably this is enough and winner index is not needed
+    for i in range(self.checked_index, self.checked_index + 30):
+        if i >= self.next_player_index:
+            self.checked_index = self.next_player_index
+            return ZERO_ADDRESS
 
-    return self.players[winner_index].sender
+        if as_unitless_number(self.players[i].cumm_pool) >= magic_number:
+            return self.players[i].sender
 
+    self.checked_index = self.checked_index + 30
+    
 # draw winner from list of pool
 @public
 def draw():
     # random pick from pool using seed from    
     assert block.number >= self.draw_block
+    seed: uint256
     seed = self.get_seed()
     self.beneficiary = self.get_winner(seed)
 
@@ -88,4 +95,4 @@ def finalize():
     """
     assert block.number >= self.ending_block
     assert self.beneficiary != ZERO_ADDRESS
-    selfdestruct(self.beneficiary) # destructs contract and sends balance to beneficiary    
+    selfdestruct(self.beneficiary) # destructs contract and sends balance to beneficiary
