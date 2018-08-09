@@ -6,18 +6,24 @@
 # written initially in vyper and then translated to solidity.
 
 
-# intiating variables
-is_open: False
-beneficiary: null
-pool: {sender: address, value: int}
-draw_time: int # timedelta constant
-safe_time: int # timedelta constant
-stop_time: timedelta
+# intiating state variables
+is_open: public(bool)
+beneficiary: public(address)
+players: {sender: address, value: wei_value}
+stop_block: uint256
+draw_block: uint256
+ending_block: uint256
 
+#     <------------ game_duration -----------><- 1 block -><---- offset ------>
+#     |---------------------------------------|-----------|--------------------|
+# Deploy block                           stop_block  draw_block          ending_block
 
-# initialize contract
-def init:
-    pass
+@public
+def __init__(_game_duration: uint256, _offset: uint256):
+    self.game_duration =  # 240 ~= 1h
+    self.stop_block = block.number + _game_duration 
+    self.draw_block = self.stop_block + 1
+    self.ending_block = self.draw_block + _offset        
 
 
 # close contract to determine winner
@@ -34,7 +40,7 @@ def participate():
     pay to participate in the draw.
 
     """
-    assert block.timestamp < self.deadline
+    assert block.timestamp < self.deadline     
     assert msg.value == participation_cost # TODO: remove deprecated participation_cost
 
     self.pool[] = {sender: msg.sender}
@@ -63,6 +69,8 @@ def draw:
 
 # send eth to winner
 def finalize:
+
+    assert block.
     # send(self.winner)
     selfdestruct(self.beneficiary)
     pass
