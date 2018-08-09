@@ -38,6 +38,14 @@ def participate():
     self.players[self.next_player_index] = {sender: msg.sender, value: msg.value}
     self.next_player_index = self.next_player_index + convert(1, 'uint256')
 
+@public
+def finalize:
+    """
+    Send eth to winner and destroy contract
+    """
+    assert block.number >= self.ending_block    
+    selfdestruct(self.beneficiary) # destructs contract and sends balance to beneficiary
+
 
 # close contract to determine winner
 def close_participations:
@@ -58,13 +66,4 @@ def draw:
     # random pick from pool using seed from
     # winner = random ^
     # beneficiary = winner
-    pass
-
-
-# send eth to winner
-def finalize:
-
-    assert block.
-    # send(self.winner)
-    selfdestruct(self.beneficiary)
     pass
