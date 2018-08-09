@@ -24,7 +24,8 @@ def __init__(_game_duration: uint256, _offset: uint256):
     self.game_duration =  # 240 ~= 1h
     self.stop_block = block.number + _game_duration 
     self.draw_block = self.stop_block + 1
-    self.ending_block = self.draw_block + _offset        
+    self.ending_block = self.draw_block + _offset
+    self.is_open = True      
 
 @public
 @payable
@@ -43,16 +44,16 @@ def finalize:
     """
     Send eth to winner and destroy contract
     """
-    assert block.number >= self.ending_block
+    assert self.is_open
     assert self.beneficiary != ZERO_ADDRESS
     selfdestruct(self.beneficiary) # destructs contract and sends balance to beneficiary
 
-
-# close contract to determine winner
 def close_participations:
-    # if self.open and timestamp > participation_limit:
-        # self.open = False
-    pass
+    """
+    close contract and prevent additional players to participate
+    """
+    if self.is_open and block.number >= self.ending_block:
+        self.is_open = False    
 
 # get seed from block number
 def get_seed:
