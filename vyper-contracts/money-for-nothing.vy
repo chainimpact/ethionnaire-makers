@@ -4,6 +4,8 @@
 # one difficulty was doing this without needing to have a random number generator. the solution
 # chosen was to use pre-defined block numbers for seeds.
 # written initially in vyper and then translated to solidity.
+#
+# WARNING: this contract has not been audited and the authors are not responsible for any lost funds
 
 
 # intiating state variables
@@ -11,19 +13,19 @@ is_open: public(bool)
 beneficiary: public(address)
 players: {sender: address, value: wei_value}[uint256]
 next_player_index: uint256 # default value 0, doesn't require init.
+pool_size: int128
 stop_block: uint256
 draw_block: uint256
-ending_block: uint256
+ending_block: int128
 
-#     <------------ game_duration -----------><- 1 block -><---- offset ------>
-#     |---------------------------------------|-----------|--------------------|
-# Deploy block                           stop_block  draw_block          ending_block
+#     <------------ game_duration -----------><-- offset1 --><---- offset2 ------>
+#     |---------------------------------------|-------------|--------------------|
+# Deploy block                           stop_block    draw_block          ending_block
 
 @public
-def __init__(_game_duration: uint256, _offset: uint256):
-    self.game_duration =  # 240 ~= 1h
+def __init__(_game_duration: uint256, _offset1: uint256):    
     self.stop_block = block.number + _game_duration 
-    self.draw_block = self.stop_block + 1
+    self.draw_block = self.stop_block + convert(offset1, 'uint256')
     self.ending_block = self.draw_block + _offset
     self.is_open = True      
 
@@ -33,39 +35,50 @@ def participate():
     """
     pay to participate in the draw.
 
-    """
-    assert block.number < self.stop_block    
+    """    
+    assert block.number < self.stop_block
 
     self.players[self.next_player_index] = {sender: msg.sender, value: msg.value}
     self.next_player_index = self.next_player_index + convert(1, 'uint256')
+    self.pool_size = self.pool_size + msg.value
+
+@public
+def close_participations:
+    """
+    DEPRECATED as is_open is not used
+    close contract and prevent additional players to participate
+    """
+    if self.is_open and block.number >= self.stop_block:
+        self.is_open = False    
+
+# get seed from block number
+def get_seed() -> (int128):    
+    # assert block.number >= self.draw_block and block.
+    return convert(block.blockhash(self.draw_block), 'int128')
+
+def get_winner(seed: int128) -> (address):
+    """
+    returns address of winner
+    """    
+    winner_index: int128
+
+    winner_index = seed % self.next_player_index
+
+    return players[winner_index].sender
+
+# draw winner from list of pool
+@public
+def draw():
+    # random pick from pool using seed from    
+    assert block.number >= self.draw_block
+    seed = self.get_seed()
+    self.beneficiary = self.get_winner(seed)
 
 @public
 def finalize:
     """
     Send eth to winner and destroy contract
     """
-    assert self.is_open
+    assert block.number >= self.ending_block
     assert self.beneficiary != ZERO_ADDRESS
-    selfdestruct(self.beneficiary) # destructs contract and sends balance to beneficiary
-
-def close_participations:
-    """
-    close contract and prevent additional players to participate
-    """
-    if self.is_open and block.number >= self.ending_block:
-        self.is_open = False    
-
-# get seed from block number
-def get_seed:
-    pass
-
-# get pool index number of lucky winner
-def get_winner:
-    pass
-
-# draw winner from list of pool
-def draw:
-    # random pick from pool using seed from
-    # winner = random ^
-    # beneficiary = winner
-    pass
+    selfdestruct(self.beneficiary) # destructs contract and sends balance to beneficiary    
