@@ -14,16 +14,16 @@ beneficiary: public(address)
 players: {sender: address, value: wei_value, cumm_pool: wei_value}[int128]
 next_player_index: int128 # default value 0, doesn't require init.
 pool_size: wei_value
-stop_block: int128
-draw_block: int128
-ending_block: int128
+stop_block: uint256
+draw_block: uint256
+ending_block: uint256
 
 #     <------------ game_duration -----------><-- offset1 --><---- offset2 ------>
 #     |---------------------------------------|-------------|--------------------|
 # Deploy block                           stop_block    draw_block          ending_block
 
 @public
-def __init__(game_duration: int128, offset1: int128, offset2: int128):    
+def __init__(game_duration: uint256, offset1: uint256, offset2: uint256):    
     self.stop_block = block.number + game_duration 
     self.draw_block = self.stop_block + offset1
     self.ending_block = self.draw_block + offset2
@@ -82,7 +82,7 @@ def draw():
     self.beneficiary = self.get_winner(seed)
 
 @public
-def finalize:
+def finalize():
     """
     Send eth to winner and destroy contract
     """
